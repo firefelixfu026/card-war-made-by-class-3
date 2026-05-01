@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>决斗 - 卡牌对战</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen active">
+            <div class="title-container">
+                <h1 class="game-title">决斗</h1>
+                <p class="publisher">三班三国杀出版社 出品</p>
+                <p class="game-subtitle">卡牌对战</p>
+            </div>
+            <div class="setup-options">
+                <div class="setup-group">
+                    <label>AI 数量：<span id="ai-count-display">1</span></label>
+                    <input type="range" id="ai-count" min="1" max="10" value="1">
+                </div>
+            </div>
+            <div class="start-options">
+                <button id="btn-start" class="btn-primary">开始游戏</button>
+                <button id="btn-rules" class="btn-secondary">游戏规则</button>
+            </div>
+            <div class="admin-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="admin-mode-toggle">
+                    <span class="slider"></span>
+                    <span class="toggle-label">管理员模式</span>
+                </label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="auto-rps-toggle">
+                    <span class="slider"></span>
+                    <span class="toggle-label">自动猜拳</span>
+                </label>
+            </div>
+            <div class="cute-decorations">
+                <span class="deco deco-1">🌸</span>
+                <span class="deco deco-2">🎋</span>
+                <span class="deco deco-3">🏮</span>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="players-container"></div>
+
+            <div id="play-area">
+                <div id="rps-zone" class="rps-zone" style="display:none">
+                    <div class="rps-inline">
+                        <h3>猜拳决定出牌权</h3>
+                        <div class="rps-choices-inline">
+                            <button class="rps-btn-inline" data-choice="rock"><span>✊</span><br>石头</button>
+                            <button class="rps-btn-inline" data-choice="scissors"><span>✌️</span><br>剪刀</button>
+                            <button class="rps-btn-inline" data-choice="paper"><span>✋</span><br>布</button>
+                        </div>
+                        <div id="rps-inline-display" class="rps-inline-display"></div>
+                    </div>
+                </div>
+                <div id="duel-inline-zone" class="duel-inline-zone" style="display:none">
+                    <div class="duel-inline-content">
+                        <div class="duel-inline-header">
+                            <span id="duel-inline-atk"></span>
+                            <span class="duel-vs">VS</span>
+                            <span id="duel-inline-def"></span>
+                        </div>
+                        <div id="duel-inline-title"></div>
+                        <div class="duel-choices-inline" id="duel-choices-inline">
+                            <button class="duel-rps-btn-inline" data-choice="rock"><span>✊</span></button>
+                            <button class="duel-rps-btn-inline" data-choice="scissors"><span>✌️</span></button>
+                            <button class="duel-rps-btn-inline" data-choice="paper"><span>✋</span></button>
+                        </div>
+                        <div id="duel-inline-log" class="duel-inline-log"></div>
+                        <div id="duel-inline-result" class="duel-inline-result"></div>
+                    </div>
+                </div>
+                <div id="played-cards" class="played-zone">
+                    <span class="played-label">出牌区</span>
+                </div>
+                <div id="discard-pile" class="pile">
+                    <span class="pile-label">弃牌堆</span>
+                    <div class="pile-count" id="discard-count">0</div>
+                </div>
+                <div id="game-message" class="message-box"></div>
+            </div>
+
+            <div id="player-area" class="player-area">
+                <div class="player-info">
+                    <div class="avatar" id="player-avatar">😎</div>
+                    <div class="player-details">
+                        <span class="player-name" id="player-name">你</span>
+                    </div>
+                    <div class="health-bar">
+                        <span class="health-label">HP</span>
+                        <div class="health-pips" id="player-health"></div>
+                        <span id="player-hp-text" class="hp-text"></span>
+                        <span id="player-wine" class="wine-status"></span>
+                        <span id="player-independent" class="independent-status"></span>
+                        <span id="player-dying" class="dying-status"></span>
+                    </div>
+                </div>
+                <div class="hand-cards" id="hand-cards"></div>
+                <div class="action-buttons" id="action-buttons">
+                    <button id="btn-end-turn" class="btn-action" style="display:none">结束回合</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="rules-screen" class="screen">
+            <div class="rules-content">
+                <h2>游戏规则</h2>
+                <div class="rules-section">
+                    <h3>🎴 卡牌效果</h3>
+                    <ul>
+                        <li><strong>杀</strong>：对一名角色造成1点伤害</li>
+                        <li><strong>桃</strong>：恢复1点体力</li>
+                        <li><strong>酒</strong>：下次造成伤害+1</li>
+                        <li><strong>南蛮入侵</strong>：对所有其他角色造成1点伤害</li>
+                        <li><strong>决斗</strong>：与目标猜拳，出牌方赢1把扣血，防守方连赢2把扣血</li>
+                        <li><strong>桃园结义</strong>：所有角色恢复1点体力</li>
+                        <li><strong>量子力学</strong>：与目标猜拳至防守方赢，防守方体力=失败次数</li>
+                        <li><strong>独立主格</strong>：进入2回合独立状态，免疫一切影响</li>
+                        <li><strong>霍尔元件</strong>：与目标猜拳，赢者HP=5，输者HP=双方原HP和-5</li>
+                        <li><strong>自由组合</strong>：全场猜拳排序，按胜序分配最低血量</li>
+                        <li><strong>电解池</strong>：与目标猜拳至对方赢，奇数次未赢-1HP，偶数次未赢-2HP</li>
+                    </ul>
+                </div>
+                <div class="rules-section">
+                    <h3>❤️ 血量机制</h3>
+                    <ul>
+                        <li>初始5点体力</li>
+                        <li>体力≥10时取模10处理</li>
+                        <li>体力≤0时进入濒死状态，若下回合未恢复则死亡</li>
+                    </ul>
+                </div>
+                <div class="rules-section">
+                    <h3>🔄 回合流程</h3>
+                    <ol>
+                        <li>所有活跃玩家猜拳，胜者出牌</li>
+                        <li>出牌方选择一张牌使用</li>
+                        <li>结算效果后，进入下一回合</li>
+                    </ol>
+                </div>
+                <div class="rules-section">
+                    <h3>🌀 独立主格</h3>
+                    <ul>
+                        <li>使用后进入2回合独立状态</li>
+                        <li>独立期间免疫一切伤害和治疗</li>
+                        <li>独立期间其他玩家继续正常游戏</li>
+                    </ul>
+                </div>
+                <button id="btn-back" class="btn-secondary">返回</button>
+            </div>
+        </div>
+
+        <div id="end-screen" class="screen">
+            <div class="end-content">
+                <h2 id="end-title">游戏结束</h2>
+                <p id="end-message"></p>
+                <button id="btn-restart" class="btn-primary">再来一局</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
