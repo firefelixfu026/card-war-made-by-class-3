@@ -82,18 +82,20 @@ function showDuelInline(attacker, defender, type) {
     document.getElementById('duel-inline-atk').textContent = attacker.name;
     document.getElementById('duel-inline-def').textContent = defender.name;
     
-    const titles = { juedou: '💥 决斗', quantum: '⚛️ 量子力学', hall: '🧲 霍尔元件', electrolytic: '⚡ 电解池' };
+    const titles = { juedou: '💥 决斗', quantum: '⚛️ 量子力学', hall: '🧲 霍尔元件', electrolytic: '⚡ 电解池', chromosome: '🧬 染色体畸变', gulliver: '📏 格列佛' };
     const rules = {
         juedou: '出牌方赢1把扣血，防守方连赢2把扣血',
         quantum: '防守方赢则结束，体力=失败次数',
         hall: '赢者HP=5，输者HP=双方原HP和-5',
-        electrolytic: '猜拳至防守方赢，奇数次未赢-1HP，偶数次未赢-2HP'
+        electrolytic: '猜拳至防守方赢，奇数次未赢-1HP，偶数次未赢-2HP',
+        chromosome: '两次猜拳改变双方外貌状态（帅/正常/丑）',
+        gulliver: '两次猜拳改变双方体型状态（大/正常/小）'
     };
     document.getElementById('duel-inline-title').textContent = titles[type] || '对决';
     document.getElementById('duel-inline-log').innerHTML = '';
     document.getElementById('duel-inline-result').textContent = rules[type] || '';
 
-    duelState = { attacker, defender, type, defWins: 0, failureCount: 0, atkHp: attacker.hp, defHp: defender.hp, lastResult: 'draw' };
+    duelState = { attacker, defender, type, defWins: 0, failureCount: 0, atkHp: attacker.hp, defHp: defender.hp, lastResult: 'draw', firstDirection: null, phase: 0 };
 
     game.isProcessing = false;
 
@@ -164,6 +166,31 @@ function handleDuelRPS(choice) {
             game.applyHpMod(duelState.defender); game.checkDying(duelState.defender);
             entry.innerHTML += ` <span class="rps-lose">→ 防守方未赢，-${dmg}HP(当前${duelState.defender.hp})</span>`;
         }
+    } else if (duelState.type === 'chromosome' || duelState.type === 'gulliver') {
+        if (duelState.phase === 0) {
+            if (res === 'win') {
+                duelState.firstDirection = duelState.type === 'chromosome' ? 'ugly' : 'small';
+                entry.innerHTML += ` <span class="rps-win">→ 出牌方胜！防守方将${duelState.firstDirection === 'ugly' ? '变丑' : '变小'}</span>`;
+            } else if (res === 'lose') {
+                duelState.firstDirection = duelState.type === 'chromosome' ? 'handsome' : 'big';
+                entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！防守方将${duelState.firstDirection === 'handsome' ? '变帅' : '变大'}</span>`;
+            } else {
+                entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+                return;
+            }
+            duelState.phase = 1;
+            entry.innerHTML += '<br><span style="color:#888;font-size:11px">第二次猜拳：至有人获胜</span>';
+        } else {
+            if (res === 'win') {
+                entry.innerHTML += ` <span class="rps-win">→ 出牌方胜！防守方状态改变</span>`;
+            } else if (res === 'lose') {
+                entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！出牌方状态改变</span>`;
+            } else {
+                entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+                return;
+            }
+            shouldEnd = true;
+        }
     }
 
     log.appendChild(entry); log.scrollTop = log.scrollHeight;
@@ -209,6 +236,28 @@ function resolveDuelEnd() {
         game.applyHpMod(defender); game.checkDying(defender);
     } else if (type === 'electrolytic') {
         showMessage(`电解池结束！共进行了${failureCount}轮猜拳`);
+    } else if (type === 'chromosome') {
+        const dir = duelState.firstDirection;
+        const defenderNew = changeState(defender.appearance, dir);
+        defender.appearance = defenderNew;
+        const defenderLabel = dir === 'handsome' ? '变帅' : '变丑';
+        showMessage(`染色体畸变第一次：${defender.name} ${defenderLabel}（当前：${defender.appearance === 'handsome' ? '帅' : defender.appearance === 'ugly' ? '丑' : '正常'}）`);
+        
+        const secondTarget = duelState.lastResult === 'lose' ? attacker : defender;
+        const secondNew = changeState(secondTarget.appearance, dir);
+        secondTarget.appearance = secondNew;
+        showMessage(`染色体畸变第二次：${secondTarget.name} 状态变为${secondNew === 'handsome' ? '帅' : secondNew === 'ugly' ? '丑' : '正常'}`);
+    } else if (type === 'gulliver') {
+        const dir = duelState.firstDirection;
+        const defenderNew = changeState(defender.size, dir);
+        defender.size = defenderNew;
+        const defenderLabel = dir === 'big' ? '变大' : '变小';
+        showMessage(`格列佛第一次：${defender.name} ${defenderLabel}（当前：${defender.size === 'big' ? '大' : defender.size === 'small' ? '小' : '正常'}）`);
+        
+        const secondTarget = duelState.lastResult === 'lose' ? attacker : defender;
+        const secondNew = changeState(secondTarget.size, dir);
+        secondTarget.size = secondNew;
+        showMessage(`格列佛第二次：${secondTarget.name} 状态变为${secondNew === 'big' ? '大' : secondNew === 'small' ? '小' : '正常'}`);
     }
 
     duelState = null;
@@ -217,7 +266,7 @@ function resolveDuelEnd() {
     updateUI();
     if (game.checkWin()) return;
     
-    if (type === 'hall' || type === 'electrolytic') {
+    if (type === 'hall' || type === 'electrolytic' || type === 'chromosome' || type === 'gulliver') {
         const user = attacker;
         showMessage('继续出牌或结束回合');
         setTimeout(() => game.endTurnAfterCard(user), 1000);
@@ -258,6 +307,10 @@ function updatePlayersUI() {
         }
 
         const armorDisplay = p.armor ? `<span class="armor-status">${p.armor.emoji}${p.armor.name}</span>` : '';
+        const appearanceDisplay = p.appearance === 'handsome' ? '<span class="appearance-status" style="color:#4a9e4a">😎帅</span>' :
+                                  p.appearance === 'ugly' ? '<span class="appearance-status" style="color:#ff4444">🤢丑</span>' : '';
+        const sizeDisplay = p.size === 'big' ? '<span class="size-status" style="color:#4a9e4a">🐘大</span>' :
+                            p.size === 'small' ? '<span class="size-status" style="color:#ff8b94">🐜小</span>' : '';
         area.innerHTML = `
             <div class="ai-player-info">
                 <div class="ai-avatar">🤖</div>
@@ -268,6 +321,8 @@ function updatePlayersUI() {
                         <span class="hp-text">${p.hp}</span>
                         <span class="wine-status">${wine}${dying}</span>
                         ${armorDisplay}
+                        ${appearanceDisplay}
+                        ${sizeDisplay}
                     </div>
                 </div>
             </div>
@@ -343,6 +398,8 @@ function updatePlayersUI() {
     const indep = document.getElementById('player-independent'); if (indep) indep.textContent = player.independentRounds > 0 ? '🌀独立' : '';
     const dying = document.getElementById('player-dying'); if (dying) dying.textContent = game.dyingInfo['player']?.dying ? '💀濒死' : '';
     const armor = document.getElementById('player-armor'); if (armor) armor.textContent = player.armor ? `${player.armor.emoji}${player.armor.name}` : '';
+    const appearance = document.getElementById('player-appearance'); if (appearance) appearance.textContent = player.appearance === 'handsome' ? '😎帅' : player.appearance === 'ugly' ? '🤢丑' : '';
+    const size = document.getElementById('player-size'); if (size) size.textContent = player.size === 'big' ? '🐘大' : player.size === 'small' ? '🐜小' : '';
 }
 
 function updatePlayArea() {

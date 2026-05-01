@@ -13,8 +13,16 @@ const TRICK_CARDS = [
     { id: 'dulige', name: '独立主格', type: 'trick', emoji: '🌀', independent: true, desc: '跳过两回合，免疫一切' },
     { id: 'hoyuanjian', name: '霍尔元件', type: 'trick', emoji: '🧲', hall: true, desc: '与目标猜拳，赢者HP=5，输者HP=双方原HP和-5', singleTarget: true },
     { id: 'ziyouzuhe', name: '自由组合', type: 'trick', emoji: '🎭', freeCombo: true, desc: '全场猜拳排序，按胜序分配最低血量' },
-    { id: 'dianjiechi', name: '电解池', type: 'trick', emoji: '⚡', electrolytic: true, desc: '与目标猜拳至对方赢，奇数次未赢-1HP，偶数次未赢-2HP', singleTarget: true }
+    { id: 'dianjiechi', name: '电解池', type: 'trick', emoji: '⚡', electrolytic: true, desc: '与目标猜拳至对方赢，奇数次未赢-1HP，偶数次未赢-2HP', singleTarget: true },
+    { id: 'ranse', name: '染色体畸变', type: 'trick', emoji: '🧬', chromosome: true, desc: '两次猜拳改变双方外貌状态（帅/正常/丑）', singleTarget: true },
+    { id: 'gelifo', name: '格列佛', type: 'trick', emoji: '📏', gulliver: true, desc: '两次猜拳改变双方体型状态（大/正常/小）', singleTarget: true }
 ];
+
+function changeState(current, direction) {
+    if (current === direction) return current;
+    if (current !== 'normal') return 'normal';
+    return direction;
+}
 
 const EQUIPMENT_CARDS = [
     { id: 'tengjia', name: '藤甲', type: 'equipment', emoji: '🛡️', desc: '免疫杀和南蛮入侵，火焰伤害+1', armor: true }

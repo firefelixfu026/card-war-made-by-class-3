@@ -476,6 +476,18 @@ body {
     margin-left: 5px;
 }
 
+.appearance-status {
+    font-size: 14px;
+    font-weight: 700;
+    margin-left: 5px;
+}
+
+.size-status {
+    font-size: 14px;
+    font-weight: 700;
+    margin-left: 5px;
+}
+
 .card-category-bar {
     display: flex;
     justify-content: center;

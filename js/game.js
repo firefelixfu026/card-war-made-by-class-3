@@ -28,13 +28,15 @@ class Game {
         this.players = [];
         this.players.push({
             id: 'player', name: '你', hp: 5, maxHp: 5, alive: true,
-            hasWine: false, independentRounds: 0, armor: null
+            hasWine: false, independentRounds: 0, armor: null,
+            appearance: 'normal', size: 'normal'
         });
 
         for (let i = 0; i < aiCount; i++) {
             this.players.push({
                 id: `ai_${i}`, name: `AI${i + 1}`, hp: 5, maxHp: 5, alive: true,
-                hasWine: false, independentRounds: 0, armor: null
+                hasWine: false, independentRounds: 0, armor: null,
+                appearance: 'normal', size: 'normal'
             });
         }
     }
@@ -246,6 +248,20 @@ class Game {
             return;
         }
 
+        if (card.chromosome) {
+            const t = target || this.selectRandomTarget(who);
+            if (t) this.startChromosome(who, t);
+            else { updateUI(); this.endTurnAfterCard(who); }
+            return;
+        }
+
+        if (card.gulliver) {
+            const t = target || this.selectRandomTarget(who);
+            if (t) this.startGulliver(who, t);
+            else { updateUI(); this.endTurnAfterCard(who); }
+            return;
+        }
+
         if (card.armor) {
             who.armor = card;
             showMessage(`${who.name} 装备【${card.name}】`);
@@ -269,6 +285,7 @@ class Game {
         if (card.damage) {
             let dmg = card.damage;
             if (who.hasWine) { dmg += 1; who.hasWine = false; }
+            if (who.appearance === 'handsome') dmg *= 2;
 
             if (card.aoe) {
                 const targets = this.getAlivePlayers().filter(p => p.id !== who.id && p.independentRounds <= 0);
@@ -279,6 +296,27 @@ class Game {
                         return;
                     }
                     if (p.armor && card.fire) finalDmg += 1;
+                    if (p.size === 'small') finalDmg += 1;
+                    if (who.appearance === 'ugly') {
+                        if (rpsBeats(ai.chooseRPS(), ai.chooseRPS()) === 'lose') {
+                            showMessage(`${who.name} 变丑状态下猜拳失败，伤害未生效！`);
+                            return;
+                        }
+                    }
+                    if (p.size === 'small') {
+                        let rounds = 0;
+                        while (true) {
+                            rounds++;
+                            const atk = ai.chooseRPS();
+                            const def = ai.chooseRPS();
+                            const res = rpsBeats(atk, def);
+                            if (res === 'lose') {
+                                showMessage(`${p.name} 变小状态下猜拳成功（第${rounds}轮），伤害无效！`);
+                                return;
+                            }
+                            if (res === 'win') break;
+                        }
+                    }
                     p.hp -= finalDmg; this.applyHpMod(p); this.checkDying(p);
                 });
                 showMessage(`${who.name} 使用【${card.name}】，所有其他角色受到${dmg}点伤害`);
@@ -291,7 +329,28 @@ class Game {
                         finalDmg = 0;
                     }
                     if (t.armor && card.fire) finalDmg += 1;
+                    if (t.size === 'small') finalDmg += 1;
                     if (finalDmg > 0) {
+                        if (who.appearance === 'ugly') {
+                            if (rpsBeats(ai.chooseRPS(), ai.chooseRPS()) === 'lose') {
+                                showMessage(`${who.name} 变丑状态下猜拳失败，伤害未生效！`);
+                                updateUI(); this.endTurnAfterCard(who); return;
+                            }
+                        }
+                        if (t.size === 'small') {
+                            let rounds = 0;
+                            while (true) {
+                                rounds++;
+                                const atk = ai.chooseRPS();
+                                const def = ai.chooseRPS();
+                                const res = rpsBeats(atk, def);
+                                if (res === 'lose') {
+                                    showMessage(`${t.name} 变小状态下猜拳成功（第${rounds}轮），伤害无效！`);
+                                    updateUI(); this.endTurnAfterCard(who); return;
+                                }
+                                if (res === 'win') break;
+                            }
+                        }
                         t.hp -= finalDmg;
                         showMessage(`${who.name} 使用【${card.name}】，${t.name} 受到${finalDmg}点伤害！`);
                     } else {
@@ -329,6 +388,16 @@ class Game {
     startElectrolytic(attacker, defender) {
         showMessage(`${attacker.name} 对 ${defender.name} 使用【电解池】！`);
         setTimeout(() => showDuelInline(attacker, defender, 'electrolytic'), 500);
+    }
+
+    startChromosome(attacker, defender) {
+        showMessage(`${attacker.name} 对 ${defender.name} 使用【染色体畸变】！`);
+        setTimeout(() => showDuelInline(attacker, defender, 'chromosome'), 500);
+    }
+
+    startGulliver(attacker, defender) {
+        showMessage(`${attacker.name} 对 ${defender.name} 使用【格列佛】！`);
+        setTimeout(() => showDuelInline(attacker, defender, 'gulliver'), 500);
     }
 
     startFreeCombo(who) {

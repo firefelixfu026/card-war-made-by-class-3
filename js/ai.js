@@ -36,6 +36,10 @@ class AI {
                 const eq = cards.filter(c => c.armor);
                 if (eq.length > 0) bestCard = eq[Math.floor(Math.random() * eq.length)];
             }
+            if (!bestCard && Math.random() < 0.3) {
+                const state = cards.filter(c => c.chromosome || c.gulliver);
+                if (state.length > 0) bestCard = state[Math.floor(Math.random() * state.length)];
+            }
         }
 
         if (!bestCard) bestCard = cards[Math.floor(Math.random() * cards.length)];

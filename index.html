@@ -99,6 +99,8 @@
                         <span id="player-independent" class="independent-status"></span>
                         <span id="player-dying" class="dying-status"></span>
                         <span id="player-armor" class="armor-status"></span>
+                        <span id="player-appearance" class="appearance-status"></span>
+                        <span id="player-size" class="size-status"></span>
                     </div>
                 </div>
                 <div class="hand-cards" id="hand-cards"></div>
@@ -127,6 +129,17 @@
                         <li><strong>自由组合</strong>：全场猜拳排序，按胜序分配最低血量</li>
                         <li><strong>电解池</strong>：与目标猜拳至对方赢，奇数次未赢-1HP，偶数次未赢-2HP</li>
                         <li><strong>藤甲</strong>：装备后免疫杀和南蛮入侵，但火焰伤害+1</li>
+                        <li><strong>染色体畸变</strong>：两次猜拳改变双方外貌状态（帅/正常/丑）</li>
+                        <li><strong>格列佛</strong>：两次猜拳改变双方体型状态（大/正常/小）</li>
+                    </ul>
+                </div>
+                <div class="rules-section">
+                    <h3>😎 状态系统</h3>
+                    <ul>
+                        <li><strong>帅</strong>：伤害翻倍；帅→变丑=正常，帅→变帅=不变</li>
+                        <li><strong>丑</strong>：造成伤害需猜拳判定；丑→变帅=正常，丑→变丑=不变</li>
+                        <li><strong>大</strong>：可被顺带选为目标，最多同时选3人</li>
+                        <li><strong>小</strong>：受到伤害+1，受伤时需猜拳判定，赢则伤害无效</li>
                     </ul>
                 </div>
                 <div class="rules-section">
