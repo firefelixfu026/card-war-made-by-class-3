@@ -66,10 +66,18 @@ class Game {
 
         this.getAlivePlayers().forEach(p => {
             const info = this.dyingInfo[p.id];
-            if (info && info.dying && info.startHp !== null) {
+            if (info && info.dying) {
+                // First round after entering dying: only record baseline HP.
+                // Death check happens on the next round start to ensure one full round window.
+                if (info.startHp === null) {
+                    info.startHp = p.hp;
+                    showMessage(`${p.name} 仍处于濒死状态`);
+                    return;
+                }
+
                 if (p.hp > info.startHp) {
                     if (p.hp > 0) { info.dying = false; info.startHp = null; showMessage(`${p.name} 脱离了濒死状态！`); }
-                    else { info.startHp = null; showMessage(`${p.name} 仍处于濒死状态`); }
+                    else { info.startHp = p.hp; showMessage(`${p.name} 仍处于濒死状态`); }
                 } else {
                     p.alive = false; p.hp = 0; info.dying = false; info.startHp = null; showMessage(`${p.name} 死亡！`);
                 }
@@ -276,12 +284,18 @@ class Game {
         if (card.heal) {
             who.hp += card.heal;
             showMessage(`${who.name} 使用【${card.name}】，恢复${card.heal}点体力`);
-            this.applyHpMod(who); updateUI(); this.endTurnAfterCard(who); return;
+            this.applyHpMod(who);
+            this.clearDyingIfRecovered(who);
+            updateUI(); this.endTurnAfterCard(who); return;
         }
 
         if (card.healBoth) {
             this.getAlivePlayers().forEach(p => {
-                if (p.independentRounds <= 0) { p.hp += 1; this.applyHpMod(p); }
+                if (p.independentRounds <= 0) {
+                    p.hp += 1;
+                    this.applyHpMod(p);
+                    this.clearDyingIfRecovered(p);
+                }
             });
             showMessage(`${who.name} 使用【${card.name}】，所有活跃角色恢复1点体力`);
             updateUI(); this.endTurnAfterCard(who); return;
@@ -478,14 +492,17 @@ class Game {
         }
     }
 
-    markDyingStartRound(who) {
+    clearDyingIfRecovered(who) {
         const info = this.dyingInfo[who.id];
-        if (info && info.dying && info.startHp === null) info.startHp = who.hp;
+        if (who.hp > 0 && info?.dying) {
+            info.dying = false;
+            info.startHp = null;
+            showMessage(`${who.name} 脱离了濒死状态！`);
+        }
     }
 
     endTurnAfterCard(who) {
         if (this.checkWin()) return;
-        this.getActivePlayers().forEach(p => this.markDyingStartRound(p));
         this.processNextTurn();
     }
 
