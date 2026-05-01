@@ -141,12 +141,29 @@ function handleDuelRPS(choice) {
             if (duelState.defWins >= 2) shouldEnd = true;
         } else { entry.innerHTML += ' <span class="rps-text">→ 平局</span>'; }
     } else if (duelState.type === 'quantum') {
-        duelState.failureCount++;
-        if (res === 'lose') {
-            entry.innerHTML += ` <span class="rps-win">→ 防守方赢！(失败${duelState.failureCount - 1}次)</span>`;
-            shouldEnd = true;
-        } else if (res === 'win') { entry.innerHTML += ' <span class="rps-lose">→ 出牌方赢</span>'; }
-        else { entry.innerHTML += ' <span class="rps-text">→ 平局</span>'; }
+        if (duelState.phase === 0) {
+            if (res === 'win') {
+                duelState.quantumTarget = 'defender';
+                entry.innerHTML += ` <span class="rps-win">→ 出牌方胜！防守方被量子</span>`;
+            } else if (res === 'lose') {
+                duelState.quantumTarget = 'attacker';
+                entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！出牌方被量子</span>`;
+            } else {
+                entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+                return;
+            }
+            duelState.phase = 1;
+            duelState.failureCount = 0;
+            entry.innerHTML += '<br><span style="color:#888;font-size:11px">第二次猜拳：决定被量子者血量</span>';
+        } else {
+            duelState.failureCount++;
+            if (res !== 'draw') {
+                entry.innerHTML += ` <span class="rps-win">→ 有人获胜！(共${duelState.failureCount}轮)</span>`;
+                shouldEnd = true;
+            } else {
+                entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+            }
+        }
     } else if (duelState.type === 'hall') {
         if (res !== 'draw') shouldEnd = true;
         entry.innerHTML += res === 'win' ? ' <span class="rps-win">→ 出牌方胜</span>' :
@@ -217,8 +234,12 @@ function resolveDuelEnd() {
         t.hp -= dmg; game.applyHpMod(t); game.checkDying(t);
         showMessage(`决斗结束！${t.name} 受到${dmg}点伤害`);
     } else if (type === 'quantum') {
-        defender.hp = failureCount - 1; game.applyHpMod(defender); game.checkDying(defender);
-        showMessage(`量子力学结束！${defender.name} 的体力变为${defender.hp}`);
+        const target = duelState.quantumTarget === 'attacker' ? attacker : defender;
+        target.hp = duelState.failureCount;
+        game.applyHpMod(target);
+        game.checkDying(target);
+        const who = duelState.quantumTarget === 'attacker' ? attacker.name : defender.name;
+        showMessage(`量子力学结束！${who} 被量子，体力变为${target.hp}`);
     } else if (type === 'hall') {
         const { atkHp, defHp, lastResult } = duelState;
         const sum = atkHp + defHp;
