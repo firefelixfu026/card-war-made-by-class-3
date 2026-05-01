@@ -1,5 +1,6 @@
 let duelState = null;
 let screens = {};
+let activeCardCategory = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
     screens = {
@@ -9,34 +10,59 @@ document.addEventListener('DOMContentLoaded', () => {
         end: document.getElementById('end-screen')
     };
 
-    document.getElementById('ai-count').addEventListener('input', (e) => {
-        document.getElementById('ai-count-display').textContent = e.target.value;
-    });
+    const aiCountSlider = document.getElementById('ai-count');
+    const aiCountDisplay = document.getElementById('ai-count-display');
+    if (aiCountSlider && aiCountDisplay) {
+        aiCountSlider.addEventListener('input', (e) => {
+            aiCountDisplay.textContent = e.target.value;
+        });
+    }
 
-    document.getElementById('btn-start').addEventListener('click', startGame);
-    document.getElementById('btn-rules').addEventListener('click', () => showScreen('rules'));
-    document.getElementById('btn-back').addEventListener('click', () => showScreen('start'));
-    document.getElementById('btn-restart').addEventListener('click', restartGame);
-    document.getElementById('btn-flee').addEventListener('click', () => {
-        if (confirm('确定要逃跑吗？')) {
-            fleeGame();
-        }
-    });
-    document.getElementById('btn-end-turn').addEventListener('click', () => {
-        const p = game.players.find(pl => pl.id === 'player');
-        if (p) game.endTurnAfterCard(p);
-    });
+    const startBtn = document.getElementById('btn-start');
+    if (startBtn) startBtn.addEventListener('click', startGame);
 
-    document.getElementById('admin-mode-toggle').addEventListener('change', (e) => {
-        game.adminMode = e.target.checked;
-        showMessage(game.adminMode ? '管理员模式已开启' : '管理员模式已关闭');
-        updateUI();
-    });
+    const rulesBtn = document.getElementById('btn-rules');
+    if (rulesBtn) rulesBtn.addEventListener('click', () => showScreen('rules'));
 
-    document.getElementById('auto-rps-toggle').addEventListener('change', (e) => {
-        game.autoRPS = e.target.checked;
-        showMessage(game.autoRPS ? '自动猜拳已开启' : '自动猜拳已关闭');
-    });
+    const backBtn = document.getElementById('btn-back');
+    if (backBtn) backBtn.addEventListener('click', () => showScreen('start'));
+
+    const restartBtn = document.getElementById('btn-restart');
+    if (restartBtn) restartBtn.addEventListener('click', restartGame);
+
+    const fleeBtn = document.getElementById('btn-flee');
+    if (fleeBtn) {
+        fleeBtn.addEventListener('click', () => {
+            if (confirm('确定要逃跑吗？')) {
+                fleeGame();
+            }
+        });
+    }
+
+    const endTurnBtn = document.getElementById('btn-end-turn');
+    if (endTurnBtn) {
+        endTurnBtn.addEventListener('click', () => {
+            const p = game.players.find(pl => pl.id === 'player');
+            if (p) game.endTurnAfterCard(p);
+        });
+    }
+
+    const adminToggle = document.getElementById('admin-mode-toggle');
+    if (adminToggle) {
+        adminToggle.addEventListener('change', (e) => {
+            game.adminMode = e.target.checked;
+            showMessage(game.adminMode ? '管理员模式已开启' : '管理员模式已关闭');
+            updateUI();
+        });
+    }
+
+    const autoRpsToggle = document.getElementById('auto-rps-toggle');
+    if (autoRpsToggle) {
+        autoRpsToggle.addEventListener('change', (e) => {
+            game.autoRPS = e.target.checked;
+            showMessage(game.autoRPS ? '自动猜拳已开启' : '自动猜拳已关闭');
+        });
+    }
 
     document.querySelectorAll('.rps-btn-inline').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -52,25 +78,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function showScreen(name) {
+    if (!screens[name]) return;
     Object.values(screens).forEach(s => {
-        s?.classList.remove('active');
+        if (!s) return;
+        s.classList.remove('active');
         s.style.zIndex = '';
     });
-    if (screens[name]) {
-        screens[name].classList.add('active');
-        screens[name].style.zIndex = '10';
-    }
+    screens[name].classList.add('active');
+    screens[name].style.zIndex = '10';
 }
 
 function startGame() {
+    if (typeof Game === 'undefined') {
+        console.error("Game class not found");
+        return;
+    }
+    
+    const aiCountEl = document.getElementById('ai-count');
+    const aiCount = aiCountEl ? parseInt(aiCountEl.value) : 1;
+    
     game = new Game();
-    game.init(parseInt(document.getElementById('ai-count').value));
-    game.autoRPS = document.getElementById('auto-rps-toggle').checked;
-    game.adminMode = document.getElementById('admin-mode-toggle').checked;
+    game.init(aiCount);
+    game.autoRPS = document.getElementById('auto-rps-toggle')?.checked || false;
+    game.adminMode = document.getElementById('admin-mode-toggle')?.checked || false;
+    
     duelState = null;
     activeCardCategory = 'all';
-    document.getElementById('rps-zone').style.display = 'none';
-    document.getElementById('duel-inline-zone').style.display = 'none';
+    
+    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
+    document.getElementById('duel-inline-zone')?.style.setProperty('display', 'none', 'important');
+    
     showScreen('game');
     updateUI();
     setTimeout(() => game.startRound(), 500);
@@ -78,17 +115,17 @@ function startGame() {
 
 function restartGame() {
     game = new Game();
-    game.autoRPS = document.getElementById('auto-rps-toggle').checked;
-    game.adminMode = document.getElementById('admin-mode-toggle').checked;
+    game.autoRPS = document.getElementById('auto-rps-toggle')?.checked || false;
+    game.adminMode = document.getElementById('admin-mode-toggle')?.checked || false;
     showScreen('start');
 }
 
 function fleeGame() {
-    game.isProcessing = false;
+    if (typeof game !== 'undefined') game.isProcessing = false;
     duelState = null;
     activeCardCategory = 'all';
-    document.getElementById('rps-zone').style.display = 'none';
-    document.getElementById('duel-inline-zone').style.display = 'none';
+    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
+    document.getElementById('duel-inline-zone')?.style.setProperty('display', 'none', 'important');
     showMessage('你已逃跑');
     setTimeout(() => showScreen('start'), 1000);
 }
@@ -102,8 +139,8 @@ function handleRPSResult(playerChoice) {
 }
 
 function showDuelInline(attacker, defender, type) {
-    document.getElementById('rps-zone').style.display = 'none';
-    document.getElementById('duel-inline-zone').style.display = 'flex';
+    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
+    document.getElementById('duel-inline-zone')?.style.display = 'flex';
 
     document.getElementById('duel-inline-atk').textContent = attacker.name;
     document.getElementById('duel-inline-def').textContent = defender.name;
@@ -111,7 +148,7 @@ function showDuelInline(attacker, defender, type) {
     const titles = { juedou: '💥 决斗', quantum: '⚛️ 量子力学', hall: '🧲 霍尔元件', electrolytic: '⚡ 电解池', chromosome: '🧬 染色体畸变', gulliver: '📏 格列佛' };
     const rules = {
         juedou: '出牌方赢1把扣血，防守方连赢2把扣血',
-        quantum: '防守方赢则结束，体力=失败次数',
+        quantum: '第一次猜拳判定谁被量子，第二次猜拳决定被量子者血量',
         hall: '赢者HP=5，输者HP=双方原HP和-5',
         electrolytic: '猜拳至防守方赢，奇数次未赢-1HP，偶数次未赢-2HP',
         chromosome: '两次猜拳改变双方外貌状态（帅/正常/丑）',
@@ -121,7 +158,7 @@ function showDuelInline(attacker, defender, type) {
     document.getElementById('duel-inline-log').innerHTML = '';
     document.getElementById('duel-inline-result').textContent = rules[type] || '';
 
-    duelState = { attacker, defender, type, defWins: 0, failureCount: 0, atkHp: attacker.hp, defHp: defender.hp, lastResult: 'draw', firstDirection: null, phase: 0 };
+    duelState = { attacker, defender, type, defWins: 0, failureCount: 0, atkHp: attacker.hp, defHp: defender.hp, lastResult: 'draw', firstDirection: null, phase: 0, quantumTarget: null };
 
     game.isProcessing = false;
 
@@ -176,6 +213,7 @@ function handleDuelRPS(choice) {
                 entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！出牌方被量子</span>`;
             } else {
                 entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+                log.appendChild(entry); log.scrollTop = log.scrollHeight;
                 return;
             }
             duelState.phase = 1;
@@ -219,6 +257,7 @@ function handleDuelRPS(choice) {
                 entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！防守方将${duelState.firstDirection === 'handsome' ? '变帅' : '变大'}</span>`;
             } else {
                 entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+                log.appendChild(entry); log.scrollTop = log.scrollHeight;
                 return;
             }
             duelState.phase = 1;
@@ -230,6 +269,7 @@ function handleDuelRPS(choice) {
                 entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！出牌方状态改变</span>`;
             } else {
                 entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
+                log.appendChild(entry); log.scrollTop = log.scrollHeight;
                 return;
             }
             shouldEnd = true;
@@ -308,8 +348,8 @@ function resolveDuelEnd() {
     }
 
     duelState = null;
-    document.getElementById('rps-zone').style.display = 'none';
-    document.getElementById('duel-inline-zone').style.display = 'none';
+    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
+    document.getElementById('duel-inline-zone')?.style.display = 'none';
     updateUI();
     if (game.checkWin()) return;
     
@@ -460,8 +500,6 @@ function updatePlayArea() {
     }
 }
 
-let activeCardCategory = 'all';
-
 function updateHandCards() {
     const con = document.getElementById('hand-cards'); if (!con) return; con.innerHTML = '';
     const player = game.players.find(p => p.id === 'player');
@@ -508,20 +546,21 @@ function updateHandCards() {
             let disabled = !canPlay;
             if (isDying && card.id !== 'tao') disabled = true;
 
-            if (disabled) {
-                el.classList.add('disabled');
-            } else {
+            if (!disabled) {
                 el.addEventListener('click', () => {
-                if (card.armor) {
-                    game.playCard(player, card);
-                } else if (card.singleTarget) {
-                    game.pendingTarget = { card, who: player };
-                    showMessage(`点击选择【${card.name}】的目标`);
-                    updateUI();
-                } else {
-                    game.playCard(player, card);
-                }
-            });
+                    if (card.armor) {
+                        game.playCard(player, card);
+                    } else if (card.singleTarget) {
+                        game.pendingTarget = { card, who: player };
+                        showMessage(`点击选择【${card.name}】的目标`);
+                        updateUI();
+                    } else {
+                        game.playCard(player, card);
+                    }
+                });
+            } else {
+                el.classList.add('disabled');
+            }
             con.appendChild(el);
         });
     }
@@ -572,4 +611,8 @@ function showEndScreen(win, msg) {
     showScreen('end');
 }
 
-function showMessage(msg) { game.showMessage(msg); }
+function showMessage(msg) { 
+    if (typeof game !== 'undefined' && game.showMessage) {
+        game.showMessage(msg); 
+    }
+}
