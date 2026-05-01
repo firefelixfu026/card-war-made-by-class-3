@@ -111,7 +111,7 @@ function showDuelInline(attacker, defender, type) {
     const titles = { juedou: '💥 决斗', quantum: '⚛️ 量子力学', hall: '🧲 霍尔元件', electrolytic: '⚡ 电解池', chromosome: '🧬 染色体畸变', gulliver: '📏 格列佛' };
     const rules = {
         juedou: '出牌方赢1把扣血，防守方连赢2把扣血',
-        quantum: '防守方赢则结束，体力=失败次数',
+        quantum: '先判赢家/输家，再沿用原本的量子力学结算输家体力',
         hall: '赢者HP=5，输者HP=双方原HP和-5',
         electrolytic: '猜拳至防守方赢，奇数次未赢-1HP，偶数次未赢-2HP',
         chromosome: '两次猜拳改变双方外貌状态（帅/正常/丑）',
@@ -170,17 +170,17 @@ function handleDuelRPS(choice) {
         if (duelState.phase === 0) {
             if (res === 'win') {
                 duelState.quantumTarget = 'defender';
-                entry.innerHTML += ` <span class="rps-win">→ 出牌方胜！防守方被量子</span>`;
+                entry.innerHTML += ` <span class="rps-win">→ 出牌方胜！视为出牌方对防守方使用量子力学</span>`;
             } else if (res === 'lose') {
                 duelState.quantumTarget = 'attacker';
-                entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！出牌方被量子</span>`;
+                entry.innerHTML += ` <span class="rps-lose">→ 防守方胜！视为防守方对出牌方使用量子力学</span>`;
             } else {
                 entry.innerHTML += ' <span class="rps-text">→ 平局，继续猜拳</span>';
                 return;
             }
             duelState.phase = 1;
             duelState.failureCount = 0;
-            entry.innerHTML += '<br><span style="color:#888;font-size:11px">第二次猜拳：决定被量子者血量</span>';
+            entry.innerHTML += '<br><span style="color:#888;font-size:11px">第二次猜拳：沿用原本的量子力学结算</span>';
         } else {
             duelState.failureCount++;
             if (res !== 'draw') {
@@ -261,7 +261,7 @@ function resolveDuelEnd() {
         showMessage(`决斗结束！${t.name} 受到${dmg}点伤害`);
     } else if (type === 'quantum') {
         const target = duelState.quantumTarget === 'attacker' ? attacker : defender;
-        target.hp = duelState.failureCount;
+        target.hp = duelState.failureCount - 1;
         game.applyHpMod(target);
         game.checkDying(target);
         const who = duelState.quantumTarget === 'attacker' ? attacker.name : defender.name;
@@ -512,16 +512,17 @@ function updateHandCards() {
                 el.classList.add('disabled');
             } else {
                 el.addEventListener('click', () => {
-                if (card.armor) {
-                    game.playCard(player, card);
-                } else if (card.singleTarget) {
-                    game.pendingTarget = { card, who: player };
-                    showMessage(`点击选择【${card.name}】的目标`);
-                    updateUI();
-                } else {
-                    game.playCard(player, card);
-                }
-            });
+                    if (card.armor) {
+                        game.playCard(player, card);
+                    } else if (card.singleTarget) {
+                        game.pendingTarget = { card, who: player };
+                        showMessage(`点击选择【${card.name}】的目标`);
+                        updateUI();
+                    } else {
+                        game.playCard(player, card);
+                    }
+                });
+            }
             con.appendChild(el);
         });
     }

@@ -9,7 +9,7 @@ const TRICK_CARDS = [
     { id: 'nanman', name: '南蛮入侵', type: 'trick', emoji: '🔥', damage: 1, desc: '对所有其他角色造成1点伤害', aoe: true },
     { id: 'juedou', name: '决斗', type: 'trick', emoji: '💥', duel: true, desc: '猜拳决胜', singleTarget: true },
     { id: 'taoyuan', name: '桃园结义', type: 'trick', emoji: '🌸', healBoth: true, desc: '所有角色恢复1点体力', aoe: true },
-    { id: 'liangzi', name: '量子力学', type: 'trick', emoji: '⚛️', quantum: true, desc: '第一次猜拳判定谁被量子，第二次猜拳决定被量子者血量', singleTarget: true },
+    { id: 'liangzi', name: '量子力学', type: 'trick', emoji: '⚛️', quantum: true, desc: '先猜拳判定赢家和输家，再沿用原本的量子力学结算输家体力', singleTarget: true },
     { id: 'dulige', name: '独立主格', type: 'trick', emoji: '🌀', independent: true, desc: '跳过两回合，免疫一切' },
     { id: 'hoyuanjian', name: '霍尔元件', type: 'trick', emoji: '🧲', hall: true, desc: '与目标猜拳，赢者HP=5，输者HP=双方原HP和-5', singleTarget: true },
     { id: 'ziyouzuhe', name: '自由组合', type: 'trick', emoji: '🎭', freeCombo: true, desc: '全场猜拳排序，按胜序分配最低血量' },
