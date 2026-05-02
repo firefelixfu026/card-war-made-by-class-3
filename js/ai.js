@@ -55,7 +55,16 @@ class AI {
         if (!bestCard) bestCard = cards[Math.floor(Math.random() * cards.length)];
 
         let target = null;
-        if (bestCard.singleTarget) target = game.selectRandomTarget(who);
+        if (bestCard.singleTarget) {
+            if (who.size === 'big') {
+                const others = game.getAlivePlayers().filter(p => p.id !== who.id && p.independentRounds <= 0);
+                const count = Math.min(1 + Math.floor(Math.random() * 3), 3, others.length);
+                const shuffled = others.sort(() => Math.random() - 0.5);
+                target = shuffled.slice(0, count);
+            } else {
+                target = game.selectRandomTarget(who);
+            }
+        }
         game.playCard(who, bestCard, target);
     }
 

@@ -2,7 +2,11 @@ let duelState = null;
 let screens = {};
 let activeCardCategory = 'all';
 
-document.addEventListener('DOMContentLoaded', () => {
+// Use a function to encapsulate initialization logic
+function initApp() {
+    console.log("Initializing App...");
+    
+    // Initialize screens
     screens = {
         start: document.getElementById('start-screen'),
         game: document.getElementById('game-screen'),
@@ -10,16 +14,37 @@ document.addEventListener('DOMContentLoaded', () => {
         end: document.getElementById('end-screen')
     };
 
-    const aiCountSlider = document.getElementById('ai-count');
-    const aiCountDisplay = document.getElementById('ai-count-display');
-    if (aiCountSlider && aiCountDisplay) {
-        aiCountSlider.addEventListener('input', (e) => {
-            aiCountDisplay.textContent = e.target.value;
-        });
+    // Check if essential screens exist
+    if (!screens.start || !screens.game || !screens.rules) {
+        console.error("Missing essential screen elements in index.html");
+        return;
     }
 
+    // AI Count Slider
+    const aiCountSlider = document.getElementById('ai-count');
+    const aiCountDisplay = document.getElementById('ai-count-display');
+    
+    if (aiCountSlider && aiCountDisplay) {
+        console.log("Found AI Slider");
+        aiCountSlider.addEventListener('input', (e) => {
+            aiCountDisplay.textContent = e.target.value;
+            console.log("Slider value:", e.target.value);
+        });
+    } else {
+        console.error("AI Slider or Display not found");
+    }
+
+    // Buttons
     const startBtn = document.getElementById('btn-start');
-    if (startBtn) startBtn.addEventListener('click', startGame);
+    if (startBtn) {
+        console.log("Found Start Button");
+        startBtn.addEventListener('click', () => {
+            console.log("Start Button Clicked");
+            startGame();
+        });
+    } else {
+        console.error("Start Button not found");
+    }
 
     const rulesBtn = document.getElementById('btn-rules');
     if (rulesBtn) rulesBtn.addEventListener('click', () => showScreen('rules'));
@@ -39,64 +64,86 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const gameRulesBtn = document.getElementById('btn-game-rules');
+    if (gameRulesBtn) {
+        gameRulesBtn.addEventListener('click', () => showScreen('rules'));
+    }
+
     const endTurnBtn = document.getElementById('btn-end-turn');
     if (endTurnBtn) {
         endTurnBtn.addEventListener('click', () => {
-            const p = game.players.find(pl => pl.id === 'player');
-            if (p) game.endTurnAfterCard(p);
+            if (typeof game !== 'undefined') {
+                const p = game.players.find(pl => pl.id === 'player');
+                if (p) game.endTurnAfterCard(p);
+            }
         });
     }
 
     const adminToggle = document.getElementById('admin-mode-toggle');
     if (adminToggle) {
         adminToggle.addEventListener('change', (e) => {
-            game.adminMode = e.target.checked;
-            showMessage(game.adminMode ? '管理员模式已开启' : '管理员模式已关闭');
-            updateUI();
+            if (typeof game !== 'undefined') {
+                game.adminMode = e.target.checked;
+                showMessage(game.adminMode ? '管理员模式已开启' : '管理员模式已关闭');
+                updateUI();
+            }
         });
     }
 
     const autoRpsToggle = document.getElementById('auto-rps-toggle');
     if (autoRpsToggle) {
         autoRpsToggle.addEventListener('change', (e) => {
-            game.autoRPS = e.target.checked;
-            showMessage(game.autoRPS ? '自动猜拳已开启' : '自动猜拳已关闭');
+            if (typeof game !== 'undefined') {
+                game.autoRPS = e.target.checked;
+                showMessage(game.autoRPS ? '自动猜拳已开启' : '自动猜拳已关闭');
+            }
         });
     }
 
+    // RPS Buttons
     document.querySelectorAll('.rps-btn-inline').forEach(btn => {
         btn.addEventListener('click', () => {
-            handleRPSResult(btn.dataset.choice);
+            if (typeof game !== 'undefined') handleRPSResult(btn.dataset.choice);
         });
     });
 
+    // Duel RPS Buttons
     document.querySelectorAll('.duel-rps-btn-inline').forEach(btn => {
         btn.addEventListener('click', () => {
-            handleDuelRPS(btn.dataset.choice);
+            if (typeof game !== 'undefined') handleDuelRPS(btn.dataset.choice);
         });
     });
-});
+    
+    console.log("App Initialization Complete");
+}
+
+// Handle DOM ready state to ensure initialization runs even if script is at bottom of body
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 function showScreen(name) {
     if (!screens[name]) return;
+    // Deactivate all screens
     Object.values(screens).forEach(s => {
-        if (!s) return;
-        s.classList.remove('active');
-        s.style.zIndex = '';
+        if (s) s.classList.remove('active');
     });
+    // Activate requested screen
     screens[name].classList.add('active');
-    screens[name].style.zIndex = '10';
 }
 
 function startGame() {
     if (typeof Game === 'undefined') {
-        console.error("Game class not found");
+        alert("Game class not loaded. Check game.js");
         return;
     }
     
     const aiCountEl = document.getElementById('ai-count');
     const aiCount = aiCountEl ? parseInt(aiCountEl.value) : 1;
     
+    // Re-initialize game instance
     game = new Game();
     game.init(aiCount);
     game.autoRPS = document.getElementById('auto-rps-toggle')?.checked || false;
@@ -105,18 +152,27 @@ function startGame() {
     duelState = null;
     activeCardCategory = 'all';
     
-    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
-    document.getElementById('duel-inline-zone')?.style.setProperty('display', 'none', 'important');
+    // Reset UI zones
+    const rpsZone = document.getElementById('rps-zone');
+    const duelZone = document.getElementById('duel-inline-zone');
+    if (rpsZone) rpsZone.style.setProperty('display', 'none', 'important');
+    if (duelZone) duelZone.style.setProperty('display', 'none', 'important');
     
     showScreen('game');
     updateUI();
-    setTimeout(() => game.startRound(), 500);
+    
+    // Delay startRound to allow UI to render
+    setTimeout(() => {
+        if (typeof game !== 'undefined') game.startRound();
+    }, 500);
 }
 
 function restartGame() {
-    game = new Game();
-    game.autoRPS = document.getElementById('auto-rps-toggle')?.checked || false;
-    game.adminMode = document.getElementById('admin-mode-toggle')?.checked || false;
+    if (typeof Game !== 'undefined') {
+        game = new Game();
+        game.autoRPS = document.getElementById('auto-rps-toggle')?.checked || false;
+        game.adminMode = document.getElementById('admin-mode-toggle')?.checked || false;
+    }
     showScreen('start');
 }
 
@@ -124,13 +180,16 @@ function fleeGame() {
     if (typeof game !== 'undefined') game.isProcessing = false;
     duelState = null;
     activeCardCategory = 'all';
-    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
-    document.getElementById('duel-inline-zone')?.style.setProperty('display', 'none', 'important');
+    const rpsZone = document.getElementById('rps-zone');
+    const duelZone = document.getElementById('duel-inline-zone');
+    if (rpsZone) rpsZone.style.setProperty('display', 'none', 'important');
+    if (duelZone) duelZone.style.setProperty('display', 'none', 'important');
     showMessage('你已逃跑');
     setTimeout(() => showScreen('start'), 1000);
 }
 
 function handleRPSResult(playerChoice) {
+    if (typeof game === 'undefined') return;
     const active = game.getActivePlayers();
     const choices = { 'player': playerChoice };
     active.forEach(p => { if (p.id !== 'player') choices[p.id] = ai.chooseRPS(); });
@@ -139,8 +198,10 @@ function handleRPSResult(playerChoice) {
 }
 
 function showDuelInline(attacker, defender, type) {
-    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
-    document.getElementById('duel-inline-zone')?.style.display = 'flex';
+    const rpsZone = document.getElementById('rps-zone');
+    const duelZone = document.getElementById('duel-inline-zone');
+    if (rpsZone) rpsZone.style.setProperty('display', 'none', 'important');
+    if (duelZone) duelZone.style.display = 'flex';
 
     document.getElementById('duel-inline-atk').textContent = attacker.name;
     document.getElementById('duel-inline-def').textContent = defender.name;
@@ -348,10 +409,17 @@ function resolveDuelEnd() {
     }
 
     duelState = null;
-    document.getElementById('rps-zone')?.style.setProperty('display', 'none', 'important');
-    document.getElementById('duel-inline-zone')?.style.display = 'none';
+    const rpsZone = document.getElementById('rps-zone');
+    const duelZone = document.getElementById('duel-inline-zone');
+    if (rpsZone) rpsZone.style.setProperty('display', 'none', 'important');
+    if (duelZone) duelZone.style.display = 'none';
     updateUI();
     if (game.checkWin()) return;
+    
+    if (game.sequentialDuels) {
+        setTimeout(() => game.processNextSequentialDuel(), 1000);
+        return;
+    }
     
     if (type === 'hall' || type === 'electrolytic' || type === 'chromosome' || type === 'gulliver') {
         const user = attacker;
@@ -373,7 +441,10 @@ function updatePlayersUI() {
     const container = document.getElementById('players-container');
     if (!container) return; container.innerHTML = '';
 
-    const isTargeting = !!game.pendingTarget;
+    const isTargeting = typeof game !== 'undefined' && !!game.pendingTarget;
+    const isMultiTargeting = isTargeting && game.pendingTarget.multi;
+
+    if (typeof game === 'undefined') return;
 
     game.players.filter(p => p.id !== 'player' && p.alive).forEach(p => {
         const area = document.createElement('div');
@@ -381,6 +452,9 @@ function updatePlayersUI() {
         const isActive = game.currentActivePlayerId === p.id;
         if (isActive && game.adminMode) area.classList.add('ai-active-turn');
         if (isTargeting && p.independentRounds <= 0) area.classList.add('targetable');
+        if (isMultiTargeting && game.pendingTarget.selectedTargets.includes(p)) {
+            area.classList.add('target-selected');
+        }
         const indep = p.independentRounds > 0 ? '🌀独立' : '';
         const wine = p.hasWine ? '🍶' : '';
         const dying = game.dyingInfo[p.id]?.dying ? '💀濒死' : '';
@@ -418,9 +492,26 @@ function updatePlayersUI() {
         if (isTargeting && p.independentRounds <= 0) {
             area.addEventListener('click', (e) => {
                 if (e.target.closest('.admin-ai-card') || e.target.closest('.btn-end-turn-ai')) return;
-                const { card, who } = game.pendingTarget;
-                game.pendingTarget = null;
-                game.playCard(who, card, p);
+                const pt = game.pendingTarget;
+                if (!pt) return;
+                if (pt.multi) {
+                    if (pt.selectedTargets.length >= 3) {
+                        showMessage('最多选择3个目标');
+                        return;
+                    }
+                    if (!pt.selectedTargets.includes(p)) {
+                        pt.selectedTargets.push(p);
+                        showMessage(`已选择${p.name}，当前选中${pt.selectedTargets.length}个目标`);
+                    } else {
+                        pt.selectedTargets = pt.selectedTargets.filter(t => t !== p);
+                        showMessage(`已取消选择${p.name}`);
+                    }
+                    updateUI();
+                } else {
+                    const { card, who } = pt;
+                    game.pendingTarget = null;
+                    game.playCard(who, card, p);
+                }
             });
         }
 
@@ -457,18 +548,43 @@ function updatePlayersUI() {
     const player = game.players.find(p => p.id === 'player');
     if (!player) return;
     const avatar = document.getElementById('player-avatar');
-    if (isTargeting && player.independentRounds <= 0) {
-        avatar.style.cursor = 'pointer';
-        avatar.style.border = '3px solid var(--secondary)';
-        avatar.onclick = () => {
-            const { card, who } = game.pendingTarget;
-            game.pendingTarget = null;
-            game.playCard(who, card, player);
-        };
-    } else {
-        avatar.style.cursor = '';
-        avatar.style.border = '';
-        avatar.onclick = null;
+    if (avatar) {
+        if (isTargeting && player.independentRounds <= 0) {
+            avatar.style.cursor = 'pointer';
+            if (isMultiTargeting && game.pendingTarget.selectedTargets.includes(player)) {
+                avatar.style.border = '3px solid #4a9e4a';
+                avatar.style.boxShadow = '0 0 10px rgba(74, 158, 74, 0.5)';
+            } else {
+                avatar.style.border = '3px solid var(--secondary)';
+                avatar.style.boxShadow = '';
+            }
+            avatar.onclick = () => {
+                const pt = game.pendingTarget;
+                if (!pt) return;
+                if (pt.multi) {
+                    if (pt.selectedTargets.length >= 3) {
+                        showMessage('最多选择3个目标');
+                        return;
+                    }
+                    if (!pt.selectedTargets.includes(player)) {
+                        pt.selectedTargets.push(player);
+                        showMessage(`已选择${player.name}，当前选中${pt.selectedTargets.length}个目标`);
+                    } else {
+                        pt.selectedTargets = pt.selectedTargets.filter(t => t !== player);
+                        showMessage(`已取消选择${player.name}`);
+                    }
+                    updateUI();
+                } else {
+                    game.pendingTarget = null;
+                    game.playCard(who, card, player);
+                }
+            };
+        } else {
+            avatar.style.cursor = '';
+            avatar.style.border = '';
+            avatar.style.boxShadow = '';
+            avatar.onclick = null;
+        }
     }
     const hpCon = document.getElementById('player-health');
     if (hpCon) {
@@ -490,10 +606,13 @@ function updatePlayersUI() {
 }
 
 function updatePlayArea() {
-    document.getElementById('discard-count').textContent = game.discardPile.length;
+    const discardCount = document.getElementById('discard-count');
+    if (discardCount) discardCount.textContent = typeof game !== 'undefined' ? game.discardPile.length : 0;
+    
     const con = document.getElementById('played-cards');
+    if (!con) return;
     con.innerHTML = '<span class="played-label">出牌区</span>';
-    if (game.lastPlayed) {
+    if (typeof game !== 'undefined' && game.lastPlayed) {
         con.appendChild(createCardElement(game.lastPlayed.card, true));
         const lbl = document.createElement('span'); lbl.style.cssText = 'font-size:12px;color:#888';
         lbl.textContent = `${game.lastPlayed.player.name} 使用`; con.appendChild(lbl);
@@ -501,7 +620,11 @@ function updatePlayArea() {
 }
 
 function updateHandCards() {
-    const con = document.getElementById('hand-cards'); if (!con) return; con.innerHTML = '';
+    const con = document.getElementById('hand-cards'); 
+    if (!con) return; 
+    con.innerHTML = '';
+    
+    if (typeof game === 'undefined') return;
     const player = game.players.find(p => p.id === 'player');
     if (!player || !player.alive) return;
 
@@ -527,7 +650,7 @@ function updateHandCards() {
             });
             catBar.appendChild(btn);
         });
-        con.parentNode.insertBefore(catBar, con);
+        if (con.parentNode) con.parentNode.insertBefore(catBar, con);
     }
     document.querySelectorAll('.cat-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.category === activeCardCategory);
@@ -551,8 +674,13 @@ function updateHandCards() {
                     if (card.armor) {
                         game.playCard(player, card);
                     } else if (card.singleTarget) {
-                        game.pendingTarget = { card, who: player };
-                        showMessage(`点击选择【${card.name}】的目标`);
+                        if (player.size === 'big') {
+                            game.pendingTarget = { card, who: player, selectedTargets: [], multi: true };
+                            showMessage(`点击选择目标（最多3个），点击已选目标取消，完成后点确认`);
+                        } else {
+                            game.pendingTarget = { card, who: player, selectedTargets: [], multi: false };
+                            showMessage(`点击选择【${card.name}】的目标`);
+                        }
                         updateUI();
                     } else {
                         game.playCard(player, card);
@@ -588,11 +716,40 @@ function updateHandCards() {
                 showMessage('已取消');
                 updateUI();
             });
-            document.getElementById('action-buttons').appendChild(cancelBtn);
+            const actionButtons = document.getElementById('action-buttons');
+            if (actionButtons) actionButtons.appendChild(cancelBtn);
         }
         cancelBtn.style.display = 'inline-block';
-    } else if (cancelBtn) {
-        cancelBtn.style.display = 'none';
+
+        let confirmBtn = document.getElementById('btn-confirm-target');
+        if (game.pendingTarget.multi) {
+            if (!confirmBtn) {
+                confirmBtn = document.createElement('button');
+                confirmBtn.id = 'btn-confirm-target';
+                confirmBtn.className = 'btn-action';
+                confirmBtn.style.background = '#4a9e4a';
+                confirmBtn.textContent = '确认';
+                confirmBtn.addEventListener('click', () => {
+                    const pt = game.pendingTarget;
+                    if (pt.selectedTargets.length === 0) {
+                        showMessage('请至少选择一个目标');
+                        return;
+                    }
+                    const { card, who, selectedTargets } = pt;
+                    game.pendingTarget = null;
+                    game.playCard(who, card, selectedTargets);
+                });
+                const actionButtons = document.getElementById('action-buttons');
+                if (actionButtons) actionButtons.appendChild(confirmBtn);
+            }
+            confirmBtn.style.display = 'inline-block';
+        } else if (confirmBtn) {
+            confirmBtn.style.display = 'none';
+        }
+    } else {
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        const confirmBtn = document.getElementById('btn-confirm-target');
+        if (confirmBtn) confirmBtn.style.display = 'none';
     }
 }
 
@@ -605,9 +762,11 @@ function createCardElement(card, small = false) {
 }
 
 function showEndScreen(win, msg) {
-    document.getElementById('end-title').textContent = win ? '🎉 胜利！' : '😢 失败...';
-    document.getElementById('end-title').style.color = win ? '#a8e6cf' : '#ff8b94';
-    document.getElementById('end-message').textContent = `共 ${game.roundCount} 回合 — ${msg}`;
+    const titleEl = document.getElementById('end-title');
+    const msgEl = document.getElementById('end-message');
+    if (titleEl) titleEl.textContent = win ? '🎉 胜利！' : '😢 失败...';
+    if (titleEl) titleEl.style.color = win ? '#a8e6cf' : '#ff8b94';
+    if (msgEl) msgEl.textContent = `共 ${game.roundCount} 回合 — ${msg}`;
     showScreen('end');
 }
 

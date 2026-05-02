@@ -12,6 +12,7 @@ class Game {
         this.turnOrder = [];
         this.pendingTarget = null;
         this.currentActivePlayerId = null;
+        this.sequentialDuels = null;
     }
 
     init(aiCount) {
@@ -24,6 +25,7 @@ class Game {
         this.turnOrder = [];
         this.pendingTarget = null;
         this.currentActivePlayerId = null;
+        this.sequentialDuels = null;
 
         this.players = [];
         this.players.push({
@@ -220,24 +222,29 @@ class Game {
             updateUI(); this.endTurnAfterCard(who); return;
         }
 
+        if (card.armor) {
+            who.armor = card;
+            showMessage(`${who.name} 装备【${card.name}】`);
+            updateUI(); this.endTurnAfterCard(who); return;
+        }
+
+        const targets = Array.isArray(target) ? target : (target ? [target] : []);
+
         if (card.duel) {
-            const t = target || this.selectRandomTarget(who);
-            if (t) this.startDuel(who, t);
-            else { updateUI(); this.endTurnAfterCard(who); }
+            if (targets.length === 0) { updateUI(); this.endTurnAfterCard(who); return; }
+            this.runSequentialDuels(who, targets, 'juedou');
             return;
         }
 
         if (card.quantum) {
-            const t = target || this.selectRandomTarget(who);
-            if (t) this.startQuantum(who, t);
-            else { updateUI(); this.endTurnAfterCard(who); }
+            if (targets.length === 0) { updateUI(); this.endTurnAfterCard(who); return; }
+            this.runSequentialDuels(who, targets, 'quantum');
             return;
         }
 
         if (card.hall) {
-            const t = target || this.selectRandomTarget(who);
-            if (t) this.startHall(who, t);
-            else { updateUI(); this.endTurnAfterCard(who); }
+            if (targets.length === 0) { updateUI(); this.endTurnAfterCard(who); return; }
+            this.runSequentialDuels(who, targets, 'hall');
             return;
         }
 
@@ -247,30 +254,21 @@ class Game {
         }
 
         if (card.electrolytic) {
-            const t = target || this.selectRandomTarget(who);
-            if (t) this.startElectrolytic(who, t);
-            else { updateUI(); this.endTurnAfterCard(who); }
+            if (targets.length === 0) { updateUI(); this.endTurnAfterCard(who); return; }
+            this.runSequentialDuels(who, targets, 'electrolytic');
             return;
         }
 
         if (card.chromosome) {
-            const t = target || this.selectRandomTarget(who);
-            if (t) this.startChromosome(who, t);
-            else { updateUI(); this.endTurnAfterCard(who); }
+            if (targets.length === 0) { updateUI(); this.endTurnAfterCard(who); return; }
+            this.runSequentialDuels(who, targets, 'chromosome');
             return;
         }
 
         if (card.gulliver) {
-            const t = target || this.selectRandomTarget(who);
-            if (t) this.startGulliver(who, t);
-            else { updateUI(); this.endTurnAfterCard(who); }
+            if (targets.length === 0) { updateUI(); this.endTurnAfterCard(who); return; }
+            this.runSequentialDuels(who, targets, 'gulliver');
             return;
-        }
-
-        if (card.armor) {
-            who.armor = card;
-            showMessage(`${who.name} 装备【${card.name}】`);
-            updateUI(); this.endTurnAfterCard(who); return;
         }
 
         if (card.heal) {
@@ -326,42 +324,45 @@ class Game {
                 });
                 showMessage(`${who.name} 使用【${card.name}】，所有其他角色受到${dmg}点伤害`);
             } else {
-                const t = target || this.selectRandomTarget(who);
-                if (t) {
-                    let finalDmg = dmg;
-                    if (t.armor && card.id === 'sha') {
-                        showMessage(`${t.name} 的【藤甲】免疫了杀！`);
-                        finalDmg = 0;
-                    }
-                    if (t.armor && card.fire) finalDmg += 1;
-                    if (t.size === 'small') finalDmg += 1;
-                    if (finalDmg > 0) {
-                        if (who.appearance === 'ugly') {
-                            if (rpsBeats(ai.chooseRPS(), ai.chooseRPS()) === 'lose') {
-                                showMessage(`${who.name} 变丑状态下猜拳失败，伤害未生效！`);
-                                updateUI(); this.endTurnAfterCard(who); return;
-                            }
+                const tgts = Array.isArray(target) ? target : (target ? [target] : []);
+                const finalTargets = tgts.length > 0 ? tgts : [this.selectRandomTarget(who)].filter(Boolean);
+                if (finalTargets.length > 0) {
+                    for (const t of finalTargets) {
+                        let finalDmg = dmg;
+                        if (t.armor && card.id === 'sha') {
+                            showMessage(`${t.name} 的【藤甲】免疫了杀！`);
+                            finalDmg = 0;
                         }
-                        if (t.size === 'small') {
-                            let rounds = 0;
-                            while (true) {
-                                rounds++;
-                                const atk = ai.chooseRPS();
-                                const def = ai.chooseRPS();
-                                const res = rpsBeats(atk, def);
-                                if (res === 'lose') {
-                                    showMessage(`${t.name} 变小状态下猜拳成功（第${rounds}轮），伤害无效！`);
-                                    updateUI(); this.endTurnAfterCard(who); return;
+                        if (t.armor && card.fire) finalDmg += 1;
+                        if (t.size === 'small') finalDmg += 1;
+                        if (finalDmg > 0) {
+                            if (who.appearance === 'ugly') {
+                                if (rpsBeats(ai.chooseRPS(), ai.chooseRPS()) === 'lose') {
+                                    showMessage(`${who.name} 变丑状态下猜拳失败，伤害未对${t.name}生效！`);
+                                    continue;
                                 }
-                                if (res === 'win') break;
                             }
+                            if (t.size === 'small') {
+                                let rounds = 0;
+                                while (true) {
+                                    rounds++;
+                                    const atk = ai.chooseRPS();
+                                    const def = ai.chooseRPS();
+                                    const res = rpsBeats(atk, def);
+                                    if (res === 'lose') {
+                                        showMessage(`${t.name} 变小状态下猜拳成功（第${rounds}轮），伤害无效！`);
+                                        continue;
+                                    }
+                                    if (res === 'win') break;
+                                }
+                            }
+                            t.hp -= finalDmg;
+                            showMessage(`${who.name} 对 ${t.name} 使用【${card.name}】，受到${finalDmg}点伤害！`);
+                            this.applyHpMod(t); this.checkDying(t);
+                        } else {
+                            showMessage(`${who.name} 对 ${t.name} 使用【${card.name}】，被藤甲免疫！`);
                         }
-                        t.hp -= finalDmg;
-                        showMessage(`${who.name} 使用【${card.name}】，${t.name} 受到${finalDmg}点伤害！`);
-                    } else {
-                        showMessage(`${who.name} 使用【${card.name}】，${t.name} 被藤甲免疫！`);
                     }
-                    this.applyHpMod(t); this.checkDying(t);
                 }
             }
             updateUI(); this.endTurnAfterCard(who); return;
@@ -403,6 +404,31 @@ class Game {
     startGulliver(attacker, defender) {
         showMessage(`${attacker.name} 对 ${defender.name} 使用【格列佛】！`);
         setTimeout(() => showDuelInline(attacker, defender, 'gulliver'), 500);
+    }
+
+    runSequentialDuels(who, targets, type) {
+        this.sequentialDuels = { who, targets: [...targets], type, index: 0 };
+        this.processNextSequentialDuel();
+    }
+
+    processNextSequentialDuel() {
+        if (!this.sequentialDuels) return;
+        const { who, targets, type, index } = this.sequentialDuels;
+        if (index >= targets.length) {
+            showMessage(`全部对决结束！`);
+            this.sequentialDuels = null;
+            updateUI();
+            this.endTurnAfterCard(who);
+            return;
+        }
+        const target = targets[index];
+        this.sequentialDuels.index++;
+        if (type === 'juedou') this.startDuel(who, target);
+        else if (type === 'quantum') this.startQuantum(who, target);
+        else if (type === 'hall') this.startHall(who, target);
+        else if (type === 'electrolytic') this.startElectrolytic(who, target);
+        else if (type === 'chromosome') this.startChromosome(who, target);
+        else if (type === 'gulliver') this.startGulliver(who, target);
     }
 
     startFreeCombo(who) {
