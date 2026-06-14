@@ -1,6 +1,7 @@
 let duelState = null;
 let screens = {};
 let activeCardCategory = 'all';
+let returnScreenAfterRules = 'start';
 
 // Use a function to encapsulate initialization logic
 function initApp() {
@@ -47,10 +48,10 @@ function initApp() {
     }
 
     const rulesBtn = document.getElementById('btn-rules');
-    if (rulesBtn) rulesBtn.addEventListener('click', () => showScreen('rules'));
+    if (rulesBtn) rulesBtn.addEventListener('click', () => showRules('start'));
 
     const backBtn = document.getElementById('btn-back');
-    if (backBtn) backBtn.addEventListener('click', () => showScreen('start'));
+    if (backBtn) backBtn.addEventListener('click', backFromRules);
 
     const restartBtn = document.getElementById('btn-restart');
     if (restartBtn) restartBtn.addEventListener('click', restartGame);
@@ -66,7 +67,7 @@ function initApp() {
 
     const gameRulesBtn = document.getElementById('btn-game-rules');
     if (gameRulesBtn) {
-        gameRulesBtn.addEventListener('click', () => showScreen('rules'));
+        gameRulesBtn.addEventListener('click', () => showRules('game'));
     }
 
     const endTurnBtn = document.getElementById('btn-end-turn');
@@ -134,6 +135,15 @@ function showScreen(name) {
     screens[name].classList.add('active');
 }
 
+function showRules(fromScreen = 'start') {
+    returnScreenAfterRules = fromScreen;
+    showScreen('rules');
+}
+
+function backFromRules() {
+    showScreen(returnScreenAfterRules || 'start');
+}
+
 function startGame() {
     if (typeof Game === 'undefined') {
         alert("Game class not loaded. Check game.js");
@@ -151,6 +161,7 @@ function startGame() {
     
     duelState = null;
     activeCardCategory = 'all';
+    returnScreenAfterRules = 'game';
     
     // Reset UI zones
     const rpsZone = document.getElementById('rps-zone');
@@ -173,6 +184,7 @@ function restartGame() {
         game.autoRPS = document.getElementById('auto-rps-toggle')?.checked || false;
         game.adminMode = document.getElementById('admin-mode-toggle')?.checked || false;
     }
+    returnScreenAfterRules = 'start';
     showScreen('start');
 }
 
@@ -180,6 +192,7 @@ function fleeGame() {
     if (typeof game !== 'undefined') game.isProcessing = false;
     duelState = null;
     activeCardCategory = 'all';
+    returnScreenAfterRules = 'start';
     const rpsZone = document.getElementById('rps-zone');
     const duelZone = document.getElementById('duel-inline-zone');
     if (rpsZone) rpsZone.style.setProperty('display', 'none', 'important');
