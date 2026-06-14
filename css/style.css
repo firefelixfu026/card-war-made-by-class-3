@@ -232,7 +232,16 @@ body {
 #game-screen {
     flex-direction: column;
     justify-content: space-between;
+    align-items: stretch;
     padding: 8px 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+}
+
+#game-screen > * {
+    flex-shrink: 0;
 }
 
 .btn-game-rules {
